@@ -114,14 +114,12 @@ impl<T: ThreadCategory> Scheduler<T> {
                     let mut job_queue_state = job_queue_state_mutex.lock().unwrap();
 
                     loop {
-                        if job_queue_state.should_stop {
-                            break;
-                        }
-
                         if let Some(job) = job_queue_state.jobs.pop_front() {
                             drop(job_queue_state);
                             job.execute();
                             job_queue_state = job_queue_state_mutex.lock().unwrap();
+                        } else if job_queue_state.should_stop {
+                            break;
                         } else {
                             job_queue_state = condvar.wait(job_queue_state).unwrap();
                         }
