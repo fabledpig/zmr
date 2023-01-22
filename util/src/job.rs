@@ -70,6 +70,31 @@ pub trait ThreadPoolDescriptor<T: ThreadCategory> {
     fn thread_category_descriptors(&self) -> HashSet<ThreadCategoryDescriptor<T>>;
 }
 
+#[macro_export]
+macro_rules! thread_pool {
+    ($i:ident, $($j:ident:$k:literal),*) => {
+        pub mod $i {
+            use super::smart_enum;
+            use super::ThreadCategoryDescriptor;
+            use std::collections::HashSet;
+
+            smart_enum!(pub, ThreadCategory, $($j),*);
+
+            impl super::ThreadCategory for ThreadCategory {}
+
+            pub struct ThreadPoolDescriptor {}
+
+            impl super::ThreadPoolDescriptor<ThreadCategory> for ThreadPoolDescriptor {
+                fn thread_category_descriptors(&self) -> HashSet<ThreadCategoryDescriptor<ThreadCategory>> {
+                    let mut thread_category_descriptors = HashSet::new();
+                    $(thread_category_descriptors.insert(ThreadCategoryDescriptor::new(ThreadCategory::$j, $k));)*
+                    thread_category_descriptors
+                }
+            }
+        }
+    };
+}
+
 struct JobQueueState {
     jobs: VecDeque<Job>,
     should_stop: bool,
@@ -180,58 +205,29 @@ impl<T> Drop for Scheduler<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::{Scheduler, ThreadCategory, ThreadCategoryDescriptor, ThreadPoolDescriptor};
+    use crate::smart_enum;
 
-    #[derive(Copy, Clone, Eq, Hash, PartialEq)]
-    enum TestThreadCategory {
-        Category1,
-        Category2,
-        Category3,
-    }
-
-    impl ThreadCategory for TestThreadCategory {}
-
-    struct TestThreadPoolDescriptor {}
-
-    impl ThreadPoolDescriptor<TestThreadCategory> for TestThreadPoolDescriptor {
-        fn thread_category_descriptors(
-            &self,
-        ) -> HashSet<ThreadCategoryDescriptor<TestThreadCategory>> {
-            let mut thread_category_descriptors = HashSet::new();
-            thread_category_descriptors.insert(ThreadCategoryDescriptor::new(
-                TestThreadCategory::Category1,
-                3,
-            ));
-            thread_category_descriptors.insert(ThreadCategoryDescriptor::new(
-                TestThreadCategory::Category2,
-                3,
-            ));
-            thread_category_descriptors.insert(ThreadCategoryDescriptor::new(
-                TestThreadCategory::Category3,
-                3,
-            ));
-
-            thread_category_descriptors
-        }
-    }
+    thread_pool!(test_thread_pool, Category1: 3, Category2: 3, Category3: 3);
 
     #[test]
     fn test_scheduler() {
-        let scheduler = Scheduler::new(TestThreadPoolDescriptor {});
+        let scheduler = Scheduler::new(test_thread_pool::ThreadPoolDescriptor {});
 
-        let job_handle_1 = scheduler.schedule_job(TestThreadCategory::Category1, || {
-            "#1 Hello from a scheduler thread."
-        });
+        let job_handle_1 = scheduler
+            .schedule_job(test_thread_pool::ThreadCategory::Category1, || {
+                "#1 Hello from a scheduler thread."
+            });
 
-        let job_handle_2 = scheduler.schedule_job(TestThreadCategory::Category2, || {
-            "#2 Hello from a scheduler thread."
-        });
+        let job_handle_2 = scheduler
+            .schedule_job(test_thread_pool::ThreadCategory::Category2, || {
+                "#2 Hello from a scheduler thread."
+            });
 
-        let job_handle_3 = scheduler.schedule_job(TestThreadCategory::Category3, || {
-            "#3 Hello from a scheduler thread."
-        });
+        let job_handle_3 = scheduler
+            .schedule_job(test_thread_pool::ThreadCategory::Category3, || {
+                "#3 Hello from a scheduler thread."
+            });
 
         assert_eq!(job_handle_1.wait(), "#1 Hello from a scheduler thread.");
         assert_eq!(job_handle_2.wait(), "#2 Hello from a scheduler thread.");

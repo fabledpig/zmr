@@ -3,7 +3,7 @@ pub mod job;
 #[macro_export]
 macro_rules! smart_enum {
     ($v:vis, $i:ident, $($j:ident),*) => {
-        #[derive(Copy, Clone)]
+        #[derive(Copy, Clone, Eq, Hash, PartialEq)]
         $v enum $i {
             $($j),*
         }
