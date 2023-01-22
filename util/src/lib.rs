@@ -1,4 +1,5 @@
 pub mod job;
+pub mod logger;
 
 #[macro_export]
 macro_rules! smart_enum {
