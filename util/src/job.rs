@@ -26,7 +26,7 @@ impl<T> JobHandle<T> {
 }
 
 struct Job {
-    fun: Box<dyn FnOnce() -> () + Send>,
+    fun: Box<dyn FnOnce() + Send>,
 }
 
 impl Job {
