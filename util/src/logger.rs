@@ -45,7 +45,7 @@ impl LoggerServer {
             )
             .into();
 
-            self.writer.write(&log_entry).unwrap();
+            self.writer.write_all(&log_entry).unwrap();
         }
     }
 }
