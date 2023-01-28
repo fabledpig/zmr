@@ -188,12 +188,12 @@ impl<T: ThreadCategory> Scheduler<T> {
 
 impl<T> Drop for Scheduler<T> {
     fn drop(&mut self) {
-        for (_, job_queue_state) in &self.job_queue_states {
+        for job_queue_state in self.job_queue_states.values() {
             let mut job_queue_state = job_queue_state.lock().unwrap();
             job_queue_state.should_stop = true;
         }
 
-        for (_, condvar) in &self.condvars {
+        for condvar in self.condvars.values() {
             condvar.notify_all();
         }
 
