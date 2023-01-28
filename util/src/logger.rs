@@ -40,7 +40,7 @@ impl LoggerServer {
             let log_entry: Vec<u8> = format!(
                 "[{}] {}: {}\n",
                 log_message.datetime.format("%Y-%m-%d %H:%M:%S%.9f %Z"),
-                log_message.severity.to_string(),
+                log_message.severity,
                 log_message.message
             )
             .into();

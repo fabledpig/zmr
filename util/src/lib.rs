@@ -9,9 +9,9 @@ macro_rules! smart_enum {
             $($j),*
         }
 
-        impl $i {
-            pub fn to_string(&self) -> &str {
-                (*self).into()
+        impl std::fmt::Display for $i {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "{}", <&str>::from(*self))
             }
         }
 
