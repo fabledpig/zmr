@@ -71,27 +71,58 @@ pub trait ThreadPoolDescriptor<T: ThreadCategory> {
 }
 
 #[macro_export]
-macro_rules! thread_pool {
+macro_rules! thread_category {
+    ($i:ident, $($j:ident),*) => {
+        mod thread_category {
+            use $crate::smart_enum;
+            use $crate::job::ThreadCategory;
+
+            smart_enum!(pub, $i, $($j),*);
+
+            impl ThreadCategory for $i {}
+        }
+
+        pub use thread_category::$i;
+    };
+}
+
+#[macro_export]
+macro_rules! thread_pool_descriptor {
     ($i:ident, $($j:ident:$k:literal),*) => {
-        pub mod $i {
-            use super::smart_enum;
-            use super::ThreadCategoryDescriptor;
+        mod thread_pool_descriptor {
             use std::collections::HashSet;
-
-            smart_enum!(pub, ThreadCategory, $($j),*);
-
-            impl super::ThreadCategory for ThreadCategory {}
+            use $crate::job::ThreadPoolDescriptor as ThreadPoolDescriptorTrait;
+            use $crate::job::ThreadCategoryDescriptor;
+            use super::$i;
 
             pub struct ThreadPoolDescriptor {}
 
-            impl super::ThreadPoolDescriptor<ThreadCategory> for ThreadPoolDescriptor {
-                fn thread_category_descriptors(&self) -> HashSet<ThreadCategoryDescriptor<ThreadCategory>> {
+            impl ThreadPoolDescriptorTrait<$i> for ThreadPoolDescriptor {
+                fn thread_category_descriptors(&self) -> HashSet<ThreadCategoryDescriptor<$i>> {
                     let mut thread_category_descriptors = HashSet::new();
-                    $(thread_category_descriptors.insert(ThreadCategoryDescriptor::new(ThreadCategory::$j, $k));)*
+                    $(thread_category_descriptors.insert(ThreadCategoryDescriptor::new($i::$j, $k));)*
                     thread_category_descriptors
                 }
             }
         }
+
+        pub use thread_pool_descriptor::ThreadPoolDescriptor;
+    };
+}
+
+#[macro_export]
+macro_rules! thread_pool {
+    ($i:ident, $($j:ident:$k:literal),*) => {
+        mod thread_pool {
+            use $crate::thread_category;
+            use $crate::thread_pool_descriptor;
+
+            thread_category!($i, $($j),*);
+            thread_pool_descriptor!($i, $($j:$k),*);
+        }
+
+        pub use thread_pool::$i;
+        pub use thread_pool::ThreadPoolDescriptor;
     };
 }
 
@@ -205,29 +236,25 @@ impl<T> Drop for Scheduler<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Scheduler, ThreadCategory, ThreadCategoryDescriptor, ThreadPoolDescriptor};
-    use crate::smart_enum;
+    use super::Scheduler;
 
-    thread_pool!(test_thread_pool, Category1: 3, Category2: 3, Category3: 3);
+    thread_pool!(TestThreadCategory, Category1: 3, Category2: 3, Category3: 3);
 
     #[test]
     fn test_scheduler() {
-        let scheduler = Scheduler::new(test_thread_pool::ThreadPoolDescriptor {});
+        let scheduler = Scheduler::new(ThreadPoolDescriptor {});
 
-        let job_handle_1 = scheduler
-            .schedule_job(test_thread_pool::ThreadCategory::Category1, || {
-                "#1 Hello from a scheduler thread."
-            });
+        let job_handle_1 = scheduler.schedule_job(TestThreadCategory::Category1, || {
+            "#1 Hello from a scheduler thread."
+        });
 
-        let job_handle_2 = scheduler
-            .schedule_job(test_thread_pool::ThreadCategory::Category2, || {
-                "#2 Hello from a scheduler thread."
-            });
+        let job_handle_2 = scheduler.schedule_job(TestThreadCategory::Category2, || {
+            "#2 Hello from a scheduler thread."
+        });
 
-        let job_handle_3 = scheduler
-            .schedule_job(test_thread_pool::ThreadCategory::Category3, || {
-                "#3 Hello from a scheduler thread."
-            });
+        let job_handle_3 = scheduler.schedule_job(TestThreadCategory::Category3, || {
+            "#3 Hello from a scheduler thread."
+        });
 
         assert_eq!(job_handle_1.wait(), "#1 Hello from a scheduler thread.");
         assert_eq!(job_handle_2.wait(), "#2 Hello from a scheduler thread.");

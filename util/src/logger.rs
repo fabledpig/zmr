@@ -79,25 +79,22 @@ pub fn create_logger(
 mod tests {
     use std::io::{self, BufWriter};
 
-    use crate::{
-        job::Scheduler, job::ThreadCategory, job::ThreadCategoryDescriptor,
-        job::ThreadPoolDescriptor, smart_enum, thread_pool,
-    };
+    use crate::{job::Scheduler, thread_pool};
 
     use super::{create_logger, LogSeverity};
 
-    thread_pool!(test_thread_pool, Logger: 1, Client: 10);
+    thread_pool!(TestThreadCategory, Logger: 1, Client: 10);
 
     #[test]
     fn test_logger() {
-        let scheduler = Scheduler::new(test_thread_pool::ThreadPoolDescriptor {});
+        let scheduler = Scheduler::new(ThreadPoolDescriptor {});
 
         let (server, client) = create_logger(32, Box::new(BufWriter::new(io::stdout())));
-        scheduler.schedule_job(test_thread_pool::ThreadCategory::Logger, || server.work());
+        scheduler.schedule_job(TestThreadCategory::Logger, || server.work());
 
         for _ in 0..10 {
             let client = client.clone();
-            scheduler.schedule_job(test_thread_pool::ThreadCategory::Client, move || {
+            scheduler.schedule_job(TestThreadCategory::Client, move || {
                 for _ in 0..1000 {
                     client.log(LogSeverity::Critical, "Test log message");
                 }
