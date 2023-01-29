@@ -24,3 +24,18 @@ macro_rules! smart_enum {
         }
     };
 }
+
+#[macro_export]
+macro_rules! internal_mut_struct {
+    ($struct_name:ident, $impl_struct_name:ty) => {
+        pub struct $struct_name {
+            inner: Mutex<$impl_struct_name>,
+        }
+
+        impl $struct_name {
+            fn lock_inner(&self) -> MutexGuard<$impl_struct_name> {
+                self.inner.lock().unwrap()
+            }
+        }
+    };
+}
