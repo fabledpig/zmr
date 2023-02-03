@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     hash::Hash,
+    marker::PhantomData,
     sync::{Arc, Condvar, Mutex},
     thread::{self, JoinHandle},
 };
@@ -215,6 +216,15 @@ impl<T: ThreadCategory> Scheduler<T> {
 
         job_handle
     }
+
+    pub fn scoped<'sched, 'env, U>(&'sched self, fun: U)
+    where
+        U: FnOnce(&ScopedScheduler<'sched, 'env, T>),
+    {
+        let scoped_job_handles = Arc::new(Mutex::new(Vec::new()));
+        let scoped_scheduler = ScopedScheduler::new(self, scoped_job_handles);
+        fun(&scoped_scheduler);
+    }
 }
 
 impl<T> Drop for Scheduler<T> {
@@ -231,6 +241,58 @@ impl<T> Drop for Scheduler<T> {
         while let Some(join_handle) = self.join_handles.pop() {
             join_handle.join().unwrap();
         }
+    }
+}
+
+pub struct ScopedJobHandle {
+    job_handle: Option<JobHandle<()>>,
+}
+
+impl ScopedJobHandle {
+    pub fn new(job_handle: JobHandle<()>) -> Self {
+        Self {
+            job_handle: Some(job_handle),
+        }
+    }
+}
+
+impl Drop for ScopedJobHandle {
+    fn drop(&mut self) {
+        self.job_handle.take().unwrap().wait();
+    }
+}
+
+pub struct ScopedScheduler<'sched, 'env, T> {
+    scheduler: &'sched Scheduler<T>,
+    scoped_job_handles: Arc<Mutex<Vec<ScopedJobHandle>>>,
+    env: PhantomData<&'env mut &'env ()>,
+}
+
+impl<'sched, 'env, T: ThreadCategory> ScopedScheduler<'sched, 'env, T> {
+    fn new(
+        scheduler: &'sched Scheduler<T>,
+        scoped_job_handles: Arc<Mutex<Vec<ScopedJobHandle>>>,
+    ) -> Self {
+        Self {
+            scheduler,
+            scoped_job_handles,
+            env: PhantomData,
+        }
+    }
+
+    pub fn schedule_job<U: FnOnce() + Send + 'env>(&self, thread_category: T, fun: U) {
+        let fun: Box<dyn FnOnce() + Send + 'static> = {
+            let fun: Box<dyn FnOnce() + Send + 'env> = Box::new(move || {
+                fun();
+            });
+            unsafe { std::mem::transmute(fun) }
+        };
+
+        let job_handle = self.scheduler.schedule_job(thread_category, fun);
+        self.scoped_job_handles
+            .lock()
+            .unwrap()
+            .push(ScopedJobHandle::new(job_handle));
     }
 }
 
@@ -259,5 +321,30 @@ mod tests {
         assert_eq!(job_handle_1.wait(), "#1 Hello from a scheduler thread.");
         assert_eq!(job_handle_2.wait(), "#2 Hello from a scheduler thread.");
         assert_eq!(job_handle_3.wait(), "#3 Hello from a scheduler thread.");
+    }
+
+    #[test]
+    fn test_scoped_scheduler() {
+        let scheduler = Scheduler::new(ThreadPoolDescriptor {});
+
+        let mut s1 = String::new();
+        let mut s2 = String::new();
+        let mut s3 = String::new();
+
+        scheduler.scoped(|s| {
+            s.schedule_job(TestThreadCategory::Category1, || {
+                s1 = String::from("s1");
+            });
+            s.schedule_job(TestThreadCategory::Category2, || {
+                s2 = String::from("s2");
+            });
+            s.schedule_job(TestThreadCategory::Category3, || {
+                s3 = String::from("s3");
+            });
+        });
+
+        assert_eq!(s1, "s1");
+        assert_eq!(s2, "s2");
+        assert_eq!(s3, "s3");
     }
 }
