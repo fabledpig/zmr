@@ -89,7 +89,7 @@ mod tests {
     fn test_logger() {
         let scheduler = Scheduler::new(ThreadPoolDescriptor {});
 
-        let (server, client) = create_logger(32, Box::new(BufWriter::new(io::stdout())));
+        let (server, client) = create_logger(32, Box::new(BufWriter::new(io::sink())));
         scheduler.schedule_job(TestThreadCategory::Logger, || server.work());
 
         for _ in 0..10 {
