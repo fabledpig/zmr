@@ -24,6 +24,14 @@ impl EngineContext {
             scheduler,
         }
     }
+
+    pub fn logger_client(&self) -> &LoggerClient {
+        &self.logger_client
+    }
+
+    pub fn scheduler(&self) -> &Scheduler<EngineThreadCategory> {
+        &self.scheduler
+    }
 }
 
 pub struct Engine {
@@ -39,14 +47,14 @@ impl Engine {
 
     pub fn work(&self, initial_scene: &Scene) {
         self.engine_context
-            .logger_client
+            .logger_client()
             .log(LogSeverity::Info, "Engine fired up");
 
         let scene = initial_scene;
         loop {
             for game_object in scene.game_objects() {
                 if let Some(logic_component) = game_object.logic_component() {
-                    self.engine_context.scheduler.scoped(|s| {
+                    self.engine_context.scheduler().scoped(|s| {
                         s.schedule_job(EngineThreadCategory::GameObject, move || {
                             logic_component.run();
                         });
