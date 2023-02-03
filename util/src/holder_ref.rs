@@ -16,7 +16,12 @@ where
     T: HolderRef<HolderType = U> + Send + Sync + 'static,
     U: 'static,
 {
-    pub fn new(holder: &'a U, object: Arc<T>) -> WithHolderRef<'a, T> {
+    /// # Safety
+    ///
+    /// Whenever holder passes T to external code (returning it from a function,
+    /// passing it as a paremeter etc.), it must make sure to do so using
+    /// `WithHolderRef<T>`.
+    pub unsafe fn new(holder: &'a U, object: Arc<T>) -> WithHolderRef<'a, T> {
         let holder: &'static U = unsafe { mem::transmute(holder) };
         object.set_holder(Some(holder));
 

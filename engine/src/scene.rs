@@ -26,14 +26,14 @@ impl Scene {
         let game_object = GameObject::new();
         self.lock_inner().game_objects.push(game_object.clone());
 
-        WithHolderRef::new(self, game_object)
+        unsafe { WithHolderRef::new(self, game_object) }
     }
 
     pub fn game_objects(&self) -> Vec<WithHolderRef<GameObject>> {
         self.lock_inner()
             .game_objects
             .iter()
-            .map(|game_object| WithHolderRef::new(self, game_object.clone()))
+            .map(|game_object| unsafe { WithHolderRef::new(self, game_object.clone()) })
             .collect()
     }
 }
@@ -76,7 +76,7 @@ impl GameObject {
         self.lock_inner()
             .logic_component
             .as_ref()
-            .map(|logic_component| WithHolderRef::new(self, logic_component.clone()))
+            .map(|logic_component| unsafe { WithHolderRef::new(self, logic_component.clone()) })
     }
 }
 
