@@ -2,11 +2,11 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use util::{holder_ref::HolderRef, internal_mut_struct};
 
-use crate::scene::GameObject;
+use crate::{scene::GameObject, EngineContext};
 
-pub trait LogicComponentFn: Fn(&GameObject) + Send + Sync + 'static {}
+pub trait LogicComponentFn: Fn(&EngineContext, &GameObject) + Send + Sync + 'static {}
 
-impl<T> LogicComponentFn for T where T: Fn(&GameObject) + Send + Sync + 'static {}
+impl<T> LogicComponentFn for T where T: Fn(&EngineContext, &GameObject) + Send + Sync + 'static {}
 
 struct LogicComponentImpl {
     game_object: Option<&'static GameObject>,
@@ -28,9 +28,9 @@ impl LogicComponent {
         })
     }
 
-    pub fn run(&self) {
+    pub fn run(&self, engine_context: &EngineContext) {
         let inner = self.lock_inner();
-        (inner.fun)(inner.game_object.unwrap());
+        (inner.fun)(engine_context, inner.game_object.unwrap());
     }
 }
 

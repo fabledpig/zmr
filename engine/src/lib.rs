@@ -56,7 +56,7 @@ impl Engine {
                 if let Some(logic_component) = game_object.logic_component() {
                     self.engine_context.scheduler().scoped(|s| {
                         s.schedule_job(EngineThreadCategory::GameObject, move || {
-                            logic_component.run();
+                            logic_component.run(&self.engine_context);
                         });
                     });
                 }
