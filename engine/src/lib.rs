@@ -13,15 +13,15 @@ pub mod scene;
 thread_category!(EngineThreadCategory, Logger, GameObject);
 
 pub struct Engine {
-    scheduler: Scheduler<EngineThreadCategory>,
     logger_client: LoggerClient,
+    scheduler: Scheduler<EngineThreadCategory>,
 }
 
 impl Engine {
     pub fn new(scheduler: Scheduler<EngineThreadCategory>, logger_client: LoggerClient) -> Self {
         Self {
-            scheduler,
             logger_client,
+            scheduler,
         }
     }
 
