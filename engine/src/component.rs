@@ -4,11 +4,13 @@ use util::{holder_ref::HolderRef, internal_mut_struct};
 
 use crate::scene::GameObject;
 
-pub type LogicComponentFn = dyn Fn(&GameObject) + Send + Sync + 'static;
+pub trait LogicComponentFn: Fn(&GameObject) + Send + Sync + 'static {}
+
+impl<T> LogicComponentFn for T where T: Fn(&GameObject) + Send + Sync + 'static {}
 
 struct LogicComponentImpl {
     game_object: Option<&'static GameObject>,
-    fun: Box<LogicComponentFn>,
+    fun: Box<dyn LogicComponentFn>,
 }
 
 internal_mut_struct!(LogicComponent, LogicComponentImpl);
@@ -16,7 +18,7 @@ internal_mut_struct!(LogicComponent, LogicComponentImpl);
 impl LogicComponent {
     pub fn new<T>(fun: T) -> Arc<Self>
     where
-        T: Fn(&GameObject) + Send + Sync + 'static,
+        T: LogicComponentFn,
     {
         Arc::new(Self {
             inner: Mutex::new(LogicComponentImpl {

@@ -5,7 +5,7 @@ use util::{
     internal_mut_struct,
 };
 
-use crate::component::LogicComponent;
+use crate::component::{LogicComponent, LogicComponentFn};
 
 struct SceneImpl {
     game_objects: Vec<Arc<GameObject>>,
@@ -63,7 +63,7 @@ impl GameObject {
 
     pub fn add_logic_component<T>(&self, fun: T)
     where
-        T: Fn(&GameObject) + Send + Sync + 'static,
+        T: LogicComponentFn,
     {
         self.lock_inner().logic_component = Some(LogicComponent::new(fun));
     }
