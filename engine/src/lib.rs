@@ -12,27 +12,41 @@ pub mod scene;
 
 thread_category!(EngineThreadCategory, Logger, GameObject);
 
-pub struct Engine {
+pub struct EngineContext {
     logger_client: LoggerClient,
     scheduler: Scheduler<EngineThreadCategory>,
 }
 
-impl Engine {
-    pub fn new(scheduler: Scheduler<EngineThreadCategory>, logger_client: LoggerClient) -> Self {
+impl EngineContext {
+    pub fn new(logger_client: LoggerClient, scheduler: Scheduler<EngineThreadCategory>) -> Self {
         Self {
             logger_client,
             scheduler,
         }
     }
+}
+
+pub struct Engine {
+    engine_context: EngineContext,
+}
+
+impl Engine {
+    pub fn new(scheduler: Scheduler<EngineThreadCategory>, logger_client: LoggerClient) -> Self {
+        Self {
+            engine_context: EngineContext::new(logger_client, scheduler),
+        }
+    }
 
     pub fn work(&self, initial_scene: &Scene) {
-        self.logger_client.log(LogSeverity::Info, "Engine fired up");
+        self.engine_context
+            .logger_client
+            .log(LogSeverity::Info, "Engine fired up");
 
         let scene = initial_scene;
         loop {
             for game_object in scene.game_objects() {
                 if let Some(logic_component) = game_object.logic_component() {
-                    self.scheduler.scoped(|s| {
+                    self.engine_context.scheduler.scoped(|s| {
                         s.schedule_job(EngineThreadCategory::GameObject, move || {
                             logic_component.run();
                         });
