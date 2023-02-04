@@ -1,6 +1,12 @@
 use std::{
     io::{self, BufWriter},
-    time::Duration,
+    time::Instant,
+};
+
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::EventLoop,
+    window::Window,
 };
 
 use engine::{scene::Scene, Engine, EngineThreadCategory};
@@ -33,5 +39,29 @@ fn main() {
     });
 
     let engine = Engine::new(scheduler, logger_client, scene);
-    engine.update(Duration::from_secs(0));
+
+    let event_loop = EventLoop::new();
+    let _window = Window::new(&event_loop).unwrap();
+
+    let mut previous_update = Instant::now();
+    event_loop.run(move |event, _, control_flow| {
+        control_flow.set_poll();
+
+        match event {
+            Event::MainEventsCleared => {
+                let now = Instant::now();
+                let delta_time = previous_update - now;
+                previous_update = now;
+
+                engine.update(delta_time);
+            }
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => {
+                control_flow.set_exit();
+            }
+            _ => (),
+        }
+    });
 }
