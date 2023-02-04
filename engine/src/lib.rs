@@ -3,6 +3,7 @@ use std::{
     time::Duration,
 };
 
+use input_handler::InputHandler;
 use scene::Scene;
 use util::{internal_mut_struct, job::Scheduler, logger::LoggerClient, thread_category};
 
@@ -26,7 +27,8 @@ internal_mut_struct!(
     EngineContext,
     EngineContextImpl,
     logger_client: LoggerClient,
-    scheduler: Scheduler<EngineThreadCategory>
+    scheduler: Scheduler<EngineThreadCategory>,
+    input_handler: InputHandler
 );
 
 impl EngineContext {
@@ -38,6 +40,7 @@ impl EngineContext {
         Self {
             logger_client,
             scheduler,
+            input_handler: InputHandler::new(),
             inner: Mutex::new(EngineContextImpl::new(scene)),
         }
     }
@@ -48,6 +51,10 @@ impl EngineContext {
 
     pub fn scheduler(&self) -> &Scheduler<EngineThreadCategory> {
         &self.scheduler
+    }
+
+    pub fn input_handler(&self) -> &InputHandler {
+        &self.input_handler
     }
 
     pub fn scene(&self) -> Arc<Scene> {
@@ -70,7 +77,12 @@ impl Engine {
         }
     }
 
-    pub fn update(&self, _delta_time: Duration) {
+    pub fn engine_context(&self) -> &EngineContext {
+        &self.engine_context
+    }
+
+    pub fn update(&self, delta_time: Duration) {
+        self.engine_context.input_handler().update(delta_time);
         let scene = self.engine_context.scene();
         self.engine_context.scheduler().scoped(|s| {
             for game_object in scene.game_objects() {
