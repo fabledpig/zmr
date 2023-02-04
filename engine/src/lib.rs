@@ -52,15 +52,15 @@ impl Engine {
 
         let scene = initial_scene;
         loop {
-            for game_object in scene.game_objects() {
-                if let Some(logic_component) = game_object.logic_component() {
-                    self.engine_context.scheduler().scoped(|s| {
-                        s.schedule_job(EngineThreadCategory::GameObject, move || {
+            self.engine_context.scheduler().scoped(|s| {
+                for game_object in scene.game_objects() {
+                    s.schedule_job(EngineThreadCategory::GameObject, move || {
+                        if let Some(logic_component) = game_object.logic_component() {
                             logic_component.run(&self.engine_context);
-                        });
+                        }
                     });
                 }
-            }
+            });
 
             thread::sleep(Duration::from_secs_f64(1.0 / 60.0));
         }
