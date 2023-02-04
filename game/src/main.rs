@@ -1,4 +1,7 @@
-use std::io::{self, BufWriter};
+use std::{
+    io::{self, BufWriter},
+    time::Duration,
+};
 
 use engine::{scene::Scene, Engine, EngineThreadCategory};
 use util::{
@@ -27,10 +30,8 @@ fn main() {
         engine_context
             .logger_client()
             .log(Debug, "Hello from logic component!");
-
-        engine_context.stop_engine();
     });
 
-    let engine = Engine::new(scheduler, logger_client);
-    engine.work(&scene);
+    let engine = Engine::new(scheduler, logger_client, scene);
+    engine.update(Duration::from_secs(0));
 }

@@ -1,16 +1,10 @@
 use std::{
-    sync::{Mutex, MutexGuard},
-    thread,
+    sync::{Arc, Mutex, MutexGuard},
     time::Duration,
 };
 
 use scene::Scene;
-use util::{
-    internal_mut_struct,
-    job::Scheduler,
-    logger::{LogSeverity, LoggerClient},
-    thread_category,
-};
+use util::{internal_mut_struct, job::Scheduler, logger::LoggerClient, thread_category};
 
 pub mod component;
 pub mod scene;
@@ -18,12 +12,12 @@ pub mod scene;
 thread_category!(EngineThreadCategory, Logger, GameObject);
 
 struct EngineContextImpl {
-    should_stop: bool,
+    scene: Arc<Scene>,
 }
 
 impl EngineContextImpl {
-    fn new() -> Self {
-        Self { should_stop: false }
+    fn new(scene: Arc<Scene>) -> Self {
+        Self { scene }
     }
 }
 
@@ -35,11 +29,15 @@ internal_mut_struct!(
 );
 
 impl EngineContext {
-    pub fn new(logger_client: LoggerClient, scheduler: Scheduler<EngineThreadCategory>) -> Self {
+    pub fn new(
+        logger_client: LoggerClient,
+        scheduler: Scheduler<EngineThreadCategory>,
+        scene: Arc<Scene>,
+    ) -> Self {
         Self {
             logger_client,
             scheduler,
-            inner: Mutex::new(EngineContextImpl::new()),
+            inner: Mutex::new(EngineContextImpl::new(scene)),
         }
     }
 
@@ -51,12 +49,8 @@ impl EngineContext {
         &self.scheduler
     }
 
-    pub fn should_stop(&self) -> bool {
-        self.lock_inner().should_stop
-    }
-
-    pub fn stop_engine(&self) {
-        self.lock_inner().should_stop = true;
+    pub fn scene(&self) -> Arc<Scene> {
+        self.lock_inner().scene.clone()
     }
 }
 
@@ -65,38 +59,26 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new(scheduler: Scheduler<EngineThreadCategory>, logger_client: LoggerClient) -> Self {
+    pub fn new(
+        scheduler: Scheduler<EngineThreadCategory>,
+        logger_client: LoggerClient,
+        scene: Arc<Scene>,
+    ) -> Self {
         Self {
-            engine_context: EngineContext::new(logger_client, scheduler),
+            engine_context: EngineContext::new(logger_client, scheduler, scene),
         }
     }
 
-    pub fn work(&self, initial_scene: &Scene) {
-        self.engine_context
-            .logger_client()
-            .log(LogSeverity::Info, "Engine fired up");
-
-        let scene = initial_scene;
-        loop {
-            if self.engine_context.should_stop() {
-                break;
-            }
-
-            self.engine_context.scheduler().scoped(|s| {
-                for game_object in scene.game_objects() {
-                    if let Some(logic_component) = game_object.logic_component() {
-                        s.schedule_job(EngineThreadCategory::GameObject, move || {
-                            logic_component.run(&self.engine_context);
-                        });
-                    }
+    pub fn update(&self, _delta_time: Duration) {
+        let scene = self.engine_context.scene();
+        self.engine_context.scheduler().scoped(|s| {
+            for game_object in scene.game_objects() {
+                if let Some(logic_component) = game_object.logic_component() {
+                    s.schedule_job(EngineThreadCategory::GameObject, move || {
+                        logic_component.run(&self.engine_context);
+                    });
                 }
-            });
-
-            thread::sleep(Duration::from_secs_f64(1.0 / 60.0));
-        }
-
-        self.engine_context
-            .logger_client()
-            .log(LogSeverity::Info, "Engine stopped");
+            }
+        });
     }
 }
