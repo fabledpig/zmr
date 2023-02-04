@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 engine = { path = "../engine" }
 util = { path = "../util" }
+winit = "0.28.*"
