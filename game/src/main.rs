@@ -50,7 +50,7 @@ fn main() {
         match event {
             Event::MainEventsCleared => {
                 let now = Instant::now();
-                let delta_time = previous_update - now;
+                let delta_time = now - previous_update;
                 previous_update = now;
 
                 engine.update(delta_time);
