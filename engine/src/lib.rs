@@ -7,6 +7,7 @@ use scene::Scene;
 use util::{internal_mut_struct, job::Scheduler, logger::LoggerClient, thread_category};
 
 pub mod component;
+pub mod input_handler;
 pub mod scene;
 
 thread_category!(EngineThreadCategory, Logger, GameObject);
