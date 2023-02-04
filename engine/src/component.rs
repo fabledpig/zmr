@@ -37,7 +37,7 @@ impl LogicComponent {
 impl HolderRef for LogicComponent {
     type HolderType = GameObject;
 
-    fn set_holder(&self, holder_ref: Option<&'static Self::HolderType>) {
-        self.lock_inner().game_object = holder_ref;
+    fn set_holder(&self, holder_ref: &'static Self::HolderType) {
+        self.lock_inner().game_object = Some(holder_ref);
     }
 }

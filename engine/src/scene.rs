@@ -83,7 +83,7 @@ impl GameObject {
 impl HolderRef for GameObject {
     type HolderType = Scene;
 
-    fn set_holder(&self, holder_ref: Option<&'static Self::HolderType>) {
-        self.lock_inner().scene = holder_ref;
+    fn set_holder(&self, holder_ref: &'static Self::HolderType) {
+        self.lock_inner().scene = Some(holder_ref);
     }
 }
