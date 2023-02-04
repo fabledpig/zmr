@@ -6,6 +6,7 @@ use std::{
 
 use scene::Scene;
 use util::{
+    internal_mut_struct,
     job::Scheduler,
     logger::{LogSeverity, LoggerClient},
     thread_category,
@@ -26,11 +27,12 @@ impl EngineContextImpl {
     }
 }
 
-pub struct EngineContext {
+internal_mut_struct!(
+    EngineContext,
+    EngineContextImpl,
     logger_client: LoggerClient,
-    scheduler: Scheduler<EngineThreadCategory>,
-    inner: Mutex<EngineContextImpl>,
-}
+    scheduler: Scheduler<EngineThreadCategory>
+);
 
 impl EngineContext {
     pub fn new(logger_client: LoggerClient, scheduler: Scheduler<EngineThreadCategory>) -> Self {
@@ -39,10 +41,6 @@ impl EngineContext {
             scheduler,
             inner: Mutex::new(EngineContextImpl::new()),
         }
-    }
-
-    fn lock_inner(&self) -> MutexGuard<EngineContextImpl> {
-        self.inner.lock().unwrap()
     }
 
     pub fn logger_client(&self) -> &LoggerClient {
