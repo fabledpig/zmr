@@ -28,9 +28,10 @@ macro_rules! smart_enum {
 
 #[macro_export]
 macro_rules! internal_mut_struct {
-    ($struct_name:ident, $impl_struct_name:ty) => {
+    ($struct_name:ident, $impl_struct_name:ty $(, $field_name:ident: $field_type: ty)*) => {
         pub struct $struct_name {
             inner: Mutex<$impl_struct_name>,
+            $($field_name: $field_type),*
         }
 
         impl $struct_name {
