@@ -84,11 +84,11 @@ impl Engine {
 
             self.engine_context.scheduler().scoped(|s| {
                 for game_object in scene.game_objects() {
-                    s.schedule_job(EngineThreadCategory::GameObject, move || {
-                        if let Some(logic_component) = game_object.logic_component() {
+                    if let Some(logic_component) = game_object.logic_component() {
+                        s.schedule_job(EngineThreadCategory::GameObject, move || {
                             logic_component.run(&self.engine_context);
-                        }
-                    });
+                        });
+                    }
                 }
             });
 
