@@ -1,4 +1,8 @@
-use std::{thread, time::Duration};
+use std::{
+    sync::{Mutex, MutexGuard},
+    thread,
+    time::Duration,
+};
 
 use scene::Scene;
 use util::{
@@ -12,9 +16,20 @@ pub mod scene;
 
 thread_category!(EngineThreadCategory, Logger, GameObject);
 
+struct EngineContextImpl {
+    should_stop: bool,
+}
+
+impl EngineContextImpl {
+    fn new() -> Self {
+        Self { should_stop: false }
+    }
+}
+
 pub struct EngineContext {
     logger_client: LoggerClient,
     scheduler: Scheduler<EngineThreadCategory>,
+    inner: Mutex<EngineContextImpl>,
 }
 
 impl EngineContext {
@@ -22,7 +37,12 @@ impl EngineContext {
         Self {
             logger_client,
             scheduler,
+            inner: Mutex::new(EngineContextImpl::new()),
         }
+    }
+
+    fn lock_inner(&self) -> MutexGuard<EngineContextImpl> {
+        self.inner.lock().unwrap()
     }
 
     pub fn logger_client(&self) -> &LoggerClient {
@@ -31,6 +51,14 @@ impl EngineContext {
 
     pub fn scheduler(&self) -> &Scheduler<EngineThreadCategory> {
         &self.scheduler
+    }
+
+    pub fn should_stop(&self) -> bool {
+        self.lock_inner().should_stop
+    }
+
+    pub fn stop_engine(&self) {
+        self.lock_inner().should_stop = true;
     }
 }
 
@@ -52,6 +80,10 @@ impl Engine {
 
         let scene = initial_scene;
         loop {
+            if self.engine_context.should_stop() {
+                break;
+            }
+
             self.engine_context.scheduler().scoped(|s| {
                 for game_object in scene.game_objects() {
                     s.schedule_job(EngineThreadCategory::GameObject, move || {
@@ -64,5 +96,9 @@ impl Engine {
 
             thread::sleep(Duration::from_secs_f64(1.0 / 60.0));
         }
+
+        self.engine_context
+            .logger_client()
+            .log(LogSeverity::Info, "Engine stopped");
     }
 }
