@@ -4,12 +4,13 @@ use std::{
 };
 
 use winit::{
-    event::{Event, WindowEvent},
+    event::{Event, KeyboardInput, WindowEvent},
     event_loop::EventLoop,
     window::Window,
 };
 
 use engine::{scene::Scene, Engine, EngineThreadCategory};
+use helper::translate_winit_keyboard_event;
 use util::{
     job::Scheduler,
     logger::{
@@ -56,6 +57,25 @@ fn main() {
                 previous_update = now;
 
                 engine.update(delta_time);
+            }
+            Event::WindowEvent {
+                event:
+                    WindowEvent::KeyboardInput {
+                        input:
+                            KeyboardInput {
+                                virtual_keycode: Some(virtual_key_code),
+                                state,
+                                ..
+                            },
+                        ..
+                    },
+                ..
+            } => {
+                translate_winit_keyboard_event(
+                    engine.engine_context().input_handler(),
+                    virtual_key_code,
+                    state,
+                );
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
