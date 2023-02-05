@@ -19,6 +19,8 @@ use util::{
     thread_pool_descriptor,
 };
 
+mod helper;
+
 thread_pool_descriptor!(EngineThreadCategory, Logger: 1, GameObject: 4);
 
 fn main() {
