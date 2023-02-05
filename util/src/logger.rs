@@ -1,6 +1,7 @@
 use std::{
     io::Write,
-    sync::mpsc::{sync_channel, Receiver, SyncSender},
+    sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender},
+    time::Duration,
 };
 
 use chrono::{DateTime, Utc};
@@ -36,16 +37,24 @@ impl LoggerServer {
     }
 
     pub fn work(mut self) {
-        while let Ok(log_message) = self.rx.recv() {
-            let log_entry: Vec<u8> = format!(
-                "[{}] {}: {}\n",
-                log_message.datetime.format("%Y-%m-%d %H:%M:%S%.9f %Z"),
-                log_message.severity,
-                log_message.message
-            )
-            .into();
+        loop {
+            match self.rx.recv_timeout(Duration::from_secs(1)) {
+                Ok(log_message) => {
+                    let log_entry: Vec<u8> = format!(
+                        "[{}] {}: {}\n",
+                        log_message.datetime.format("%Y-%m-%d %H:%M:%S%.9f %Z"),
+                        log_message.severity,
+                        log_message.message
+                    )
+                    .into();
 
-            self.writer.write_all(&log_entry).unwrap();
+                    self.writer.write_all(&log_entry).unwrap();
+                }
+                Err(RecvTimeoutError::Timeout) => {
+                    self.writer.flush().unwrap();
+                }
+                _ => break,
+            }
         }
     }
 }
