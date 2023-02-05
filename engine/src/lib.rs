@@ -9,6 +9,7 @@ use util::{internal_mut_struct, job::Scheduler, logger::LoggerClient, thread_cat
 
 pub mod component;
 pub mod input_handler;
+pub mod renderer;
 pub mod scene;
 
 thread_category!(EngineThreadCategory, Logger, GameObject);
