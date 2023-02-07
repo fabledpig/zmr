@@ -1,11 +1,14 @@
-use std::{
-    sync::{Arc, Mutex, MutexGuard},
-    time::Duration,
-};
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
+use std::time::Duration;
 
 use input_handler::InputHandler;
 use scene::Scene;
-use util::{internal_mut_struct, job::Scheduler, logger::LoggerClient, thread_category};
+use util::internal_mut_struct;
+use util::job::Scheduler;
+use util::logger::LoggerClient;
+use util::thread_category;
 
 pub mod component;
 pub mod input_handler;

@@ -1,10 +1,10 @@
-use std::{ffi::CString, ptr};
+use std::ffi::CString;
+use std::ptr;
 
 use glutin::prelude::GlDisplay;
 
-use crate::scene::Scene;
-
 use super::Renderer;
+use crate::scene::Scene;
 
 mod gl {
     include!(concat!(env!("OUT_DIR"), "/gl_bindings.rs"));

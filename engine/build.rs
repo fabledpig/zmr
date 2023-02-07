@@ -1,7 +1,12 @@
-use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
 use std::env;
 use std::fs::File;
 use std::path::Path;
+
+use gl_generator::Api;
+use gl_generator::Fallbacks;
+use gl_generator::GlobalGenerator;
+use gl_generator::Profile;
+use gl_generator::Registry;
 
 fn main() {
     let dest = env::var("OUT_DIR").unwrap();

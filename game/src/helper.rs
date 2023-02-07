@@ -1,5 +1,7 @@
-use engine::input_handler::{InputHandler, Key};
-use winit::event::{ElementState, VirtualKeyCode};
+use engine::input_handler::InputHandler;
+use engine::input_handler::Key;
+use winit::event::ElementState;
+use winit::event::VirtualKeyCode;
 
 pub fn translate_winit_keyboard_event(
     input_handler: &InputHandler,

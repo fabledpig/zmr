@@ -1,10 +1,12 @@
-use std::{
-    io::Write,
-    sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender},
-    time::Duration,
-};
+use std::io::Write;
+use std::sync::mpsc::sync_channel;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::RecvTimeoutError;
+use std::sync::mpsc::SyncSender;
+use std::time::Duration;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 
 use crate::smart_enum;
 
@@ -86,11 +88,13 @@ pub fn create_logger(
 
 #[cfg(test)]
 mod tests {
-    use std::io::{self, BufWriter};
+    use std::io::BufWriter;
+    use std::io::{self};
 
-    use crate::{job::Scheduler, thread_pool};
-
-    use super::{create_logger, LogSeverity};
+    use super::create_logger;
+    use super::LogSeverity;
+    use crate::job::Scheduler;
+    use crate::thread_pool;
 
     thread_pool!(TestThreadCategory, Logger: 1, Client: 10);
 

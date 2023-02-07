@@ -1,6 +1,8 @@
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
+use std::sync::Weak;
 
-use crate::{scene::GameObject, EngineContext};
+use crate::scene::GameObject;
+use crate::EngineContext;
 
 pub trait LogicComponentFn: Fn(&EngineContext, &GameObject) + Send + Sync + 'static {}
 

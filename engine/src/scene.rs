@@ -1,8 +1,12 @@
-use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
+use std::sync::Weak;
 
 use util::internal_mut_struct;
 
-use crate::component::{LogicComponent, LogicComponentFn};
+use crate::component::LogicComponent;
+use crate::component::LogicComponentFn;
 
 struct SceneImpl {
     game_objects: Vec<Arc<GameObject>>,

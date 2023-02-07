@@ -1,24 +1,21 @@
-use std::{
-    io::{self, BufWriter},
-    time::Instant,
-};
+use std::io::BufWriter;
+use std::io::{self};
+use std::time::Instant;
 
-use winit::{
-    event::{Event, KeyboardInput, WindowEvent},
-    event_loop::EventLoop,
-    window::Window,
-};
-
-use engine::{scene::Scene, Engine, EngineThreadCategory};
+use engine::scene::Scene;
+use engine::Engine;
+use engine::EngineThreadCategory;
 use helper::translate_winit_keyboard_event;
-use util::{
-    job::Scheduler,
-    logger::{
-        create_logger,
-        LogSeverity::{Debug, Info},
-    },
-    thread_pool_descriptor,
-};
+use util::job::Scheduler;
+use util::logger::create_logger;
+use util::logger::LogSeverity::Debug;
+use util::logger::LogSeverity::Info;
+use util::thread_pool_descriptor;
+use winit::event::Event;
+use winit::event::KeyboardInput;
+use winit::event::WindowEvent;
+use winit::event_loop::EventLoop;
+use winit::window::Window;
 
 mod helper;
 

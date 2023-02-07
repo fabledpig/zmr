@@ -1,11 +1,11 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::time::Duration;
+use std::time::Instant;
 
-use util::{internal_mut_struct, smart_enum};
+use util::internal_mut_struct;
+use util::smart_enum;
 
 smart_enum!(
     pub, Key, K0, K1, K2, K3, K4, K5, K6, K7, K8, K9, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O,

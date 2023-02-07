@@ -1,10 +1,13 @@
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    hash::Hash,
-    marker::PhantomData,
-    sync::{Arc, Condvar, Mutex},
-    thread::{self, JoinHandle},
-};
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::collections::VecDeque;
+use std::hash::Hash;
+use std::marker::PhantomData;
+use std::sync::Arc;
+use std::sync::Condvar;
+use std::sync::Mutex;
+use std::thread::JoinHandle;
+use std::thread::{self};
 
 pub struct JobHandle<T> {
     result: Arc<Mutex<Option<T>>>,
