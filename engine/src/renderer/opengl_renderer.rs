@@ -1,7 +1,22 @@
 use std::ffi::CString;
+use std::num::NonZeroU32;
 use std::ptr;
 
+use glutin::config::Config;
+use glutin::config::ConfigTemplateBuilder;
+use glutin::context::ContextAttributesBuilder;
+use glutin::context::NotCurrentContext;
+use glutin::context::PossiblyCurrentContext;
+use glutin::display::Display;
+use glutin::display::DisplayApiPreference;
 use glutin::prelude::GlDisplay;
+use glutin::prelude::NotCurrentGlContextSurfaceAccessor;
+use glutin::surface::GlSurface;
+use glutin::surface::Surface;
+use glutin::surface::SurfaceAttributesBuilder;
+use glutin::surface::WindowSurface;
+use raw_window_handle::RawDisplayHandle;
+use raw_window_handle::RawWindowHandle;
 
 use super::Renderer;
 use crate::scene::Scene;
@@ -10,15 +25,45 @@ mod gl {
     include!(concat!(env!("OUT_DIR"), "/gl_bindings.rs"));
 }
 
+#[cfg(target_os = "linux")]
+pub type XlibErrorHookRegistrar = glutin::api::glx::XlibErrorHookRegistrar;
+
+#[cfg(target_os = "windows")]
+pub type XlibErrorHookRegistrar = ();
+
 pub struct OpenGlRenderer {
     program: gl::types::GLuint,
     vao: gl::types::GLuint,
     vbo: gl::types::GLuint,
+    gl_surface: Surface<WindowSurface>,
+    gl_context: PossiblyCurrentContext,
 }
 
 impl OpenGlRenderer {
-    pub fn new<D: GlDisplay>(gl_display: &D) -> Self {
+    pub fn new(
+        raw_display_handle: RawDisplayHandle,
+        raw_window_handle: RawWindowHandle,
+        width: NonZeroU32,
+        height: NonZeroU32,
+        xlib_error_hook_registrar: XlibErrorHookRegistrar,
+    ) -> Self {
         unsafe {
+            let gl_display = Self::create_display(
+                raw_display_handle,
+                raw_window_handle,
+                xlib_error_hook_registrar,
+            );
+            let gl_config = Self::create_config(&gl_display);
+            let mut not_current_gl_context = Some(Self::create_not_current_context(
+                raw_window_handle,
+                &gl_display,
+                &gl_config,
+            ));
+            let gl_surface =
+                Self::create_surface(&gl_display, &gl_config, raw_window_handle, width, height);
+            let gl_context =
+                Self::make_context_current(not_current_gl_context.take().unwrap(), &gl_surface);
+
             gl::load_with(|symbol| {
                 let symbol = CString::new(symbol).unwrap();
                 gl_display.get_proc_address(symbol.as_c_str()).cast()
@@ -69,8 +114,73 @@ impl OpenGlRenderer {
             );
             gl::EnableVertexAttribArray(1);
 
-            Self { program, vao, vbo }
+            Self {
+                program,
+                vao,
+                vbo,
+                gl_surface,
+                gl_context,
+            }
         }
+    }
+
+    unsafe fn create_display(
+        raw_display_handle: RawDisplayHandle,
+        #[allow(unused)] raw_window_handle: RawWindowHandle,
+        #[allow(unused)] xlib_error_hook_registrar: XlibErrorHookRegistrar,
+    ) -> Display {
+        #[cfg(target_os = "windows")]
+        let preference = DisplayApiPreference::Wgl(Some(raw_window_handle));
+
+        #[cfg(target_os = "linux")]
+        let preference = DisplayApiPreference::Glx(xlib_error_hook_registrar);
+
+        Display::new(raw_display_handle, preference).unwrap()
+    }
+
+    unsafe fn create_config(gl_display: &Display) -> Config {
+        gl_display
+            .find_configs(ConfigTemplateBuilder::new().build())
+            .unwrap()
+            .next()
+            .unwrap()
+    }
+
+    unsafe fn create_not_current_context(
+        raw_window_handle: RawWindowHandle,
+        gl_display: &Display,
+        gl_config: &Config,
+    ) -> NotCurrentContext {
+        let context_attributes = ContextAttributesBuilder::new().build(Some(raw_window_handle));
+        gl_display
+            .create_context(gl_config, &context_attributes)
+            .unwrap()
+    }
+
+    unsafe fn create_surface(
+        gl_display: &Display,
+        gl_config: &Config,
+        raw_window_handle: RawWindowHandle,
+        width: NonZeroU32,
+        height: NonZeroU32,
+    ) -> Surface<WindowSurface> {
+        gl_display
+            .create_window_surface(
+                gl_config,
+                &SurfaceAttributesBuilder::<WindowSurface>::new().build(
+                    raw_window_handle,
+                    width,
+                    height,
+                ),
+            )
+            .unwrap()
+    }
+
+    unsafe fn make_context_current(
+        not_current_gl_context: NotCurrentContext,
+        gl_surface: &Surface<WindowSurface>,
+    ) -> PossiblyCurrentContext {
+        not_current_gl_context.make_current(gl_surface).unwrap()
     }
 
     unsafe fn create_shader(shader_type: gl::types::GLenum, source: &[u8]) -> gl::types::GLuint {
