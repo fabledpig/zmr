@@ -202,6 +202,8 @@ impl Renderer for OpenGlRenderer {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
+
+        self.gl_surface.swap_buffers(&self.gl_context).unwrap();
     }
 
     fn resize(&self, width: usize, height: usize) {
