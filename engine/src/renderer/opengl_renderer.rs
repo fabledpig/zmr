@@ -93,6 +93,12 @@ impl Renderer for OpenGlRenderer {
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
     }
+
+    fn resize(&self, width: usize, height: usize) {
+        unsafe {
+            gl::Viewport(0, 0, width as i32, height as i32);
+        }
+    }
 }
 
 #[rustfmt::skip]
