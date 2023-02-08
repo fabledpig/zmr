@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 engine = { path = "../engine" }
+raw-window-handle = "0.5.*"
 util = { path = "../util" }
 winit = "0.28.*"
