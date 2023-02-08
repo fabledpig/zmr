@@ -101,6 +101,16 @@ impl Renderer for OpenGlRenderer {
     }
 }
 
+impl Drop for OpenGlRenderer {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteProgram(self.program);
+            gl::DeleteBuffers(1, &self.vbo);
+            gl::DeleteBuffers(1, &self.vao);
+        }
+    }
+}
+
 #[rustfmt::skip]
 static VERTEX_DATA: [f32; 15] = [
     -0.5, -0.5,  1.0,  0.0,  0.0,
