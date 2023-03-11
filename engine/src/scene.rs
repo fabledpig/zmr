@@ -12,19 +12,20 @@ struct SceneImpl {
     game_objects: Vec<Arc<GameObject>>,
 }
 
-internal_mut_struct!(Scene, SceneImpl);
+internal_mut_struct!(Scene, SceneImpl, this: Weak<Scene>);
 
 impl Scene {
     pub fn new() -> Arc<Self> {
-        Arc::new(Self {
+        Arc::new_cyclic(|this| Self {
             inner: Mutex::new(SceneImpl {
                 game_objects: Vec::new(),
             }),
+            this: this.clone(),
         })
     }
 
-    pub fn add_game_object(self: &Arc<Self>) -> Arc<GameObject> {
-        let game_object = GameObject::new(Arc::downgrade(self));
+    pub fn add_game_object(&self) -> Arc<GameObject> {
+        let game_object = GameObject::new(self.this.clone());
         self.lock_inner().game_objects.push(game_object.clone());
 
         game_object
@@ -39,23 +40,29 @@ struct GameObjectImpl {
     logic_component: Option<Arc<LogicComponent>>,
 }
 
-internal_mut_struct!(GameObject, GameObjectImpl, scene: Weak<Scene>);
+internal_mut_struct!(
+    GameObject,
+    GameObjectImpl,
+    this: Weak<GameObject>,
+    scene: Weak<Scene>
+);
 
 impl GameObject {
     fn new(scene: Weak<Scene>) -> Arc<Self> {
-        Arc::new(Self {
+        Arc::new_cyclic(|this| Self {
             inner: Mutex::new(GameObjectImpl {
                 logic_component: None,
             }),
+            this: this.clone(),
             scene,
         })
     }
 
-    pub fn add_logic_component<T>(self: &Arc<Self>, fun: T)
+    pub fn add_logic_component<T>(&self, fun: T)
     where
         T: LogicComponentFn,
     {
-        self.lock_inner().logic_component = Some(LogicComponent::new(Arc::downgrade(self), fun));
+        self.lock_inner().logic_component = Some(LogicComponent::new(self.this.clone(), fun));
     }
 
     pub fn remove_logic_component(&self) {
