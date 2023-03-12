@@ -18,12 +18,11 @@ use glutin::surface::WindowSurface;
 use raw_window_handle::RawDisplayHandle;
 use raw_window_handle::RawWindowHandle;
 
+use super::gl;
+use super::opengl_shader::OpenGlShader;
+use super::opengl_shader::OpenGlShaderProgram;
 use super::Renderer;
 use crate::scene::Scene;
-
-mod gl {
-    include!(concat!(env!("OUT_DIR"), "/gl_bindings.rs"));
-}
 
 #[cfg(target_os = "linux")]
 pub type XlibErrorHookRegistrar = glutin::api::glx::XlibErrorHookRegistrar;
@@ -32,7 +31,7 @@ pub type XlibErrorHookRegistrar = glutin::api::glx::XlibErrorHookRegistrar;
 pub type XlibErrorHookRegistrar = ();
 
 pub struct OpenGlRenderer {
-    program: gl::types::GLuint,
+    shader_program: OpenGlShaderProgram,
     vao: gl::types::GLuint,
     vbo: gl::types::GLuint,
     gl_surface: Surface<WindowSurface>,
@@ -69,15 +68,9 @@ impl OpenGlRenderer {
                 gl_display.get_proc_address(symbol.as_c_str()).cast()
             });
 
-            let vertex_shader = Self::create_shader(gl::VERTEX_SHADER, VERTEX_SHADER_SOURCE);
-            let fragment_shader = Self::create_shader(gl::FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE);
-            let program = gl::CreateProgram();
-            gl::AttachShader(program, vertex_shader);
-            gl::AttachShader(program, fragment_shader);
-            gl::LinkProgram(program);
-            gl::UseProgram(program);
-            gl::DeleteShader(vertex_shader);
-            gl::DeleteShader(fragment_shader);
+            let vertex_shader = OpenGlShader::new(gl::VERTEX_SHADER, VERTEX_SHADER_SOURCE);
+            let fragment_shader = OpenGlShader::new(gl::FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE);
+            let shader_program = OpenGlShaderProgram::new(&[vertex_shader, fragment_shader]);
 
             let mut vao = std::mem::zeroed();
             gl::GenVertexArrays(1, &mut vao);
@@ -115,7 +108,7 @@ impl OpenGlRenderer {
             gl::EnableVertexAttribArray(1);
 
             Self {
-                program,
+                shader_program,
                 vao,
                 vbo,
                 gl_surface,
@@ -182,19 +175,12 @@ impl OpenGlRenderer {
     ) -> PossiblyCurrentContext {
         not_current_gl_context.make_current(gl_surface).unwrap()
     }
-
-    unsafe fn create_shader(shader_type: gl::types::GLenum, source: &[u8]) -> gl::types::GLuint {
-        let shader = gl::CreateShader(shader_type);
-        gl::ShaderSource(shader, 1, [source.as_ptr().cast()].as_ptr(), ptr::null());
-        gl::CompileShader(shader);
-        shader
-    }
 }
 
 impl Renderer for OpenGlRenderer {
     fn render(&self, _scene: &Scene) {
         unsafe {
-            gl::UseProgram(self.program);
+            self.shader_program.use_program();
             gl::BindVertexArray(self.vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
 
@@ -216,7 +202,6 @@ impl Renderer for OpenGlRenderer {
 impl Drop for OpenGlRenderer {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteProgram(self.program);
             gl::DeleteBuffers(1, &self.vbo);
             gl::DeleteBuffers(1, &self.vao);
         }
