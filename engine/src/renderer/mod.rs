@@ -11,3 +11,9 @@ pub trait Renderer {
     fn render(&self, scene: &Scene);
     fn resize(&self, width: usize, height: usize);
 }
+
+#[derive(PartialEq, Eq, Hash)]
+pub enum ShaderId {
+    BuiltIn,
+    Custom(String),
+}

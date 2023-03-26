@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::num::NonZeroU32;
 use std::ptr;
@@ -22,6 +23,7 @@ use super::gl;
 use super::opengl_shader::OpenGlShader;
 use super::opengl_shader::OpenGlShaderProgram;
 use super::Renderer;
+use super::ShaderId;
 use crate::scene::Scene;
 
 #[cfg(target_os = "linux")]
@@ -31,7 +33,7 @@ pub type XlibErrorHookRegistrar = glutin::api::glx::XlibErrorHookRegistrar;
 pub type XlibErrorHookRegistrar = ();
 
 pub struct OpenGlRenderer {
-    shader_program: OpenGlShaderProgram,
+    shader_programs: HashMap<ShaderId, OpenGlShaderProgram>,
     vao: gl::types::GLuint,
     vbo: gl::types::GLuint,
     gl_surface: Surface<WindowSurface>,
@@ -72,6 +74,9 @@ impl OpenGlRenderer {
             let fragment_shader = OpenGlShader::new(gl::FRAGMENT_SHADER, FRAGMENT_SHADER_SOURCE);
             let shader_program = OpenGlShaderProgram::new(&[vertex_shader, fragment_shader]);
 
+            let mut shader_programs = HashMap::new();
+            shader_programs.insert(ShaderId::BuiltIn, shader_program);
+
             let mut vao = std::mem::zeroed();
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
@@ -108,7 +113,7 @@ impl OpenGlRenderer {
             gl::EnableVertexAttribArray(1);
 
             Self {
-                shader_program,
+                shader_programs,
                 vao,
                 vbo,
                 gl_surface,
@@ -180,7 +185,11 @@ impl OpenGlRenderer {
 impl Renderer for OpenGlRenderer {
     fn render(&self, _scene: &Scene) {
         unsafe {
-            self.shader_program.use_program();
+            self.shader_programs
+                .get(&ShaderId::BuiltIn)
+                .unwrap()
+                .use_program();
+
             gl::BindVertexArray(self.vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
 
