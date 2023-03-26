@@ -20,6 +20,7 @@ use raw_window_handle::RawDisplayHandle;
 use raw_window_handle::RawWindowHandle;
 
 use super::gl;
+use super::opengl_buffer::OpenGlBuffer;
 use super::opengl_shader::OpenGlShader;
 use super::opengl_shader::OpenGlShaderProgram;
 use super::Renderer;
@@ -35,7 +36,7 @@ pub type XlibErrorHookRegistrar = ();
 pub struct OpenGlRenderer {
     shader_programs: HashMap<ShaderId, OpenGlShaderProgram>,
     vao: gl::types::GLuint,
-    vbo: gl::types::GLuint,
+    vbo: OpenGlBuffer,
     gl_surface: Surface<WindowSurface>,
     gl_context: PossiblyCurrentContext,
 }
@@ -81,9 +82,8 @@ impl OpenGlRenderer {
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
 
-            let mut vbo = std::mem::zeroed();
-            gl::GenBuffers(1, &mut vbo);
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+            let vbo = OpenGlBuffer::single();
+            vbo.bind(gl::ARRAY_BUFFER);
 
             gl::BufferData(
                 gl::ARRAY_BUFFER,
@@ -191,7 +191,7 @@ impl Renderer for OpenGlRenderer {
                 .use_program();
 
             gl::BindVertexArray(self.vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+            self.vbo.bind(gl::ARRAY_BUFFER);
 
             gl::ClearColor(0.5, 0.5, 0.5, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -211,7 +211,6 @@ impl Renderer for OpenGlRenderer {
 impl Drop for OpenGlRenderer {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteBuffers(1, &self.vbo);
             gl::DeleteBuffers(1, &self.vao);
         }
     }

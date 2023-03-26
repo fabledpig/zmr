@@ -1,5 +1,6 @@
 use crate::scene::Scene;
 
+mod opengl_buffer;
 pub mod opengl_renderer;
 mod opengl_shader;
 
