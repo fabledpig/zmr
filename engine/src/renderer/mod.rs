@@ -19,3 +19,9 @@ pub enum ShaderId {
     BuiltIn,
     Custom(String),
 }
+
+#[derive(PartialEq, Eq, Hash)]
+pub enum VaoId {
+    Triangle,
+    Custom(String),
+}

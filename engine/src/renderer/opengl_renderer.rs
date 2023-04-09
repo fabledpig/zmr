@@ -29,6 +29,7 @@ use super::opengl_vertex_array::OpenGlVertexArrayBuilder;
 use super::opengl_vertex_array::OpenGlVertexAttribPointer;
 use super::Renderer;
 use super::ShaderId;
+use super::VaoId;
 use crate::scene::Scene;
 
 #[cfg(target_os = "linux")]
@@ -39,7 +40,7 @@ pub type XlibErrorHookRegistrar = ();
 
 pub struct OpenGlRenderer {
     shader_programs: HashMap<ShaderId, OpenGlShaderProgram>,
-    vao: OpenGlVertexArray,
+    vaos: HashMap<VaoId, OpenGlVertexArray>,
     gl_surface: Surface<WindowSurface>,
     gl_context: PossiblyCurrentContext,
 }
@@ -108,9 +109,12 @@ impl OpenGlRenderer {
                 )
                 .build();
 
+            let mut vaos = HashMap::new();
+            vaos.insert(VaoId::Triangle, vao);
+
             Self {
                 shader_programs,
-                vao,
+                vaos,
                 gl_surface,
                 gl_context,
             }
@@ -185,7 +189,7 @@ impl Renderer for OpenGlRenderer {
                 .unwrap()
                 .use_program();
 
-            self.vao.bind();
+            self.vaos.get(&VaoId::Triangle).unwrap().bind();
 
             gl::ClearColor(0.5, 0.5, 0.5, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
