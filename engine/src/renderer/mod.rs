@@ -3,6 +3,7 @@ use crate::scene::Scene;
 mod opengl_buffer;
 pub mod opengl_renderer;
 mod opengl_shader;
+mod opengl_vertex_array;
 
 mod gl {
     include!(concat!(env!("OUT_DIR"), "/gl_bindings.rs"));

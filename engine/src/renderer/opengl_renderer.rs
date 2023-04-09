@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ffi::CString;
 use std::num::NonZeroU32;
 use std::ptr;
+use std::sync::Arc;
 
 use glutin::config::Config;
 use glutin::config::ConfigTemplateBuilder;
@@ -23,6 +24,9 @@ use super::gl;
 use super::opengl_buffer::OpenGlBuffer;
 use super::opengl_shader::OpenGlShader;
 use super::opengl_shader::OpenGlShaderProgram;
+use super::opengl_vertex_array::OpenGlVertexArray;
+use super::opengl_vertex_array::OpenGlVertexArrayBuilder;
+use super::opengl_vertex_array::OpenGlVertexAttribPointer;
 use super::Renderer;
 use super::ShaderId;
 use crate::scene::Scene;
@@ -35,8 +39,7 @@ pub type XlibErrorHookRegistrar = ();
 
 pub struct OpenGlRenderer {
     shader_programs: HashMap<ShaderId, OpenGlShaderProgram>,
-    vao: gl::types::GLuint,
-    vbo: OpenGlBuffer,
+    vao: OpenGlVertexArray,
     gl_surface: Surface<WindowSurface>,
     gl_context: PossiblyCurrentContext,
 }
@@ -78,44 +81,36 @@ impl OpenGlRenderer {
             let mut shader_programs = HashMap::new();
             shader_programs.insert(ShaderId::BuiltIn, shader_program);
 
-            let mut vao = std::mem::zeroed();
-            gl::GenVertexArrays(1, &mut vao);
-            gl::BindVertexArray(vao);
+            let vbo = Arc::new(OpenGlBuffer::single());
+            vbo.buffer_data(VERTEX_DATA.as_slice(), gl::STATIC_DRAW);
 
-            let vbo = OpenGlBuffer::single();
-            vbo.bind(gl::ARRAY_BUFFER);
-
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (VERTEX_DATA.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-                VERTEX_DATA.as_ptr() as *const _,
-                gl::STATIC_DRAW,
-            );
-
-            gl::VertexAttribPointer(
-                0,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                5 * std::mem::size_of::<f32>() as gl::types::GLsizei,
-                ptr::null(),
-            );
-            gl::EnableVertexAttribArray(0);
-
-            gl::VertexAttribPointer(
-                1,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                5 * std::mem::size_of::<f32>() as gl::types::GLsizei,
-                (2 * std::mem::size_of::<f32>()) as *const () as *const _,
-            );
-            gl::EnableVertexAttribArray(1);
+            let vao = OpenGlVertexArrayBuilder::new()
+                .add_buffer(
+                    vbo,
+                    vec![
+                        OpenGlVertexAttribPointer::new(
+                            0,
+                            2,
+                            gl::FLOAT,
+                            gl::FALSE,
+                            5 * std::mem::size_of::<f32>() as gl::types::GLsizei,
+                            ptr::null(),
+                        ),
+                        OpenGlVertexAttribPointer::new(
+                            1,
+                            3,
+                            gl::FLOAT,
+                            gl::FALSE,
+                            5 * std::mem::size_of::<f32>() as gl::types::GLsizei,
+                            (2 * std::mem::size_of::<f32>()) as *const () as *const _,
+                        ),
+                    ],
+                )
+                .build();
 
             Self {
                 shader_programs,
                 vao,
-                vbo,
                 gl_surface,
                 gl_context,
             }
@@ -190,8 +185,7 @@ impl Renderer for OpenGlRenderer {
                 .unwrap()
                 .use_program();
 
-            gl::BindVertexArray(self.vao);
-            self.vbo.bind(gl::ARRAY_BUFFER);
+            self.vao.bind();
 
             gl::ClearColor(0.5, 0.5, 0.5, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -204,14 +198,6 @@ impl Renderer for OpenGlRenderer {
     fn resize(&self, width: usize, height: usize) {
         unsafe {
             gl::Viewport(0, 0, width as i32, height as i32);
-        }
-    }
-}
-
-impl Drop for OpenGlRenderer {
-    fn drop(&mut self) {
-        unsafe {
-            gl::DeleteBuffers(1, &self.vao);
         }
     }
 }

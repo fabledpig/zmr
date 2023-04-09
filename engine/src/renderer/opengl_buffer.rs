@@ -7,7 +7,7 @@ pub struct OpenGlBuffer {
 impl OpenGlBuffer {
     pub unsafe fn single() -> Self {
         let mut buffer_id = std::mem::zeroed();
-        gl::GenBuffers(1, &mut buffer_id);
+        gl::CreateBuffers(1, &mut buffer_id);
 
         Self { buffer_id }
     }
@@ -20,6 +20,17 @@ impl OpenGlBuffer {
     pub fn bind(&self, target: gl::types::GLenum) {
         unsafe {
             gl::BindBuffer(target, self.buffer_id);
+        }
+    }
+
+    pub fn buffer_data<T>(&self, data: &[T], usage: gl::types::GLenum) {
+        unsafe {
+            gl::NamedBufferData(
+                self.buffer_id,
+                (data.len() * std::mem::size_of::<T>()) as gl::types::GLsizeiptr,
+                data.as_ptr() as *const _,
+                usage,
+            );
         }
     }
 }
