@@ -1,6 +1,8 @@
-use std::{ffi::c_void, sync::Arc};
+use std::ffi::c_void;
+use std::sync::Arc;
 
-use super::{gl, opengl_buffer::OpenGlBuffer};
+use super::gl;
+use super::opengl_buffer::OpenGlBuffer;
 
 pub struct OpenGlVertexArray {
     vertex_array_id: gl::types::GLuint,
