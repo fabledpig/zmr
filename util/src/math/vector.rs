@@ -8,6 +8,10 @@ use std::ops::Neg;
 use std::ops::Sub;
 use std::ops::SubAssign;
 
+use crate::forward_ref_binop;
+use crate::forward_ref_binop_assign;
+use crate::forward_ref_unop;
+
 pub trait VectorType:
     Add<Output = Self>
     + Sub<Output = Self>
@@ -50,62 +54,6 @@ macro_rules! strip_plus {
     }
 }
 
-macro_rules! forward_ref_binop {
-    ($name: ident$(<$type: ident>)?,
-    $op_name: ident,
-    $fn: ident,
-    $rhs: ident$(<$rhs_type: ident>)?,
-    $output: ident$(<$output_type: ident>)?
-) => {
-        impl$(<$type: VectorType>)? $op_name<&$rhs$(<$rhs_type>)?> for $name$(<$type>)? {
-            type Output = $output$(<$output_type>)?;
-
-            fn $fn(self, rhs: &$rhs$(<$rhs_type>)?) -> Self::Output {
-                $op_name::<&$rhs$(<$rhs_type>)?>::$fn(&self, rhs)
-            }
-        }
-
-        impl$(<$type: VectorType>)? $op_name<$rhs$(<$rhs_type>)?> for &$name$(<$type>)? {
-            type Output = $output$(<$output_type>)?;
-
-            fn $fn(self, rhs: $rhs$(<$rhs_type>)?) -> Self::Output {
-                $op_name::<&$rhs$(<$rhs_type>)?>::$fn(self, &rhs)
-            }
-        }
-
-        impl$(<$type: VectorType>)? $op_name<$rhs$(<$rhs_type>)?> for $name$(<$type>)? {
-            type Output = $output$(<$output_type>)?;
-
-            fn $fn(self, rhs: $rhs$(<$rhs_type>)?) -> Self::Output {
-                $op_name::<&$rhs$(<$rhs_type>)?>::$fn(&self, &rhs)
-            }
-        }
-    };
-}
-
-macro_rules! forward_ref_binop_assign {
-    (
-        $name: ident$(<$type: ident>)?,
-        $op_name: ident,
-        $fn: ident,
-        $assign_op_name: ident,
-        $assign_fn: ident,
-        $rhs: ident$(<$rhs_type: ident>)?
-    ) => {
-        impl$(<$type: VectorType>)? $assign_op_name<$rhs$(<$rhs_type>)?> for $name$(<$type>)? {
-            fn $assign_fn(&mut self, rhs: $rhs$(<$rhs_type>)?) {
-                *self = $op_name::<$rhs$(<$rhs_type>)?>::$fn(*self, rhs);
-            }
-        }
-
-        impl$(<$type: VectorType>)? $assign_op_name<&$rhs$(<$rhs_type>)?> for $name$(<$type>)? {
-            fn $assign_fn(&mut self, rhs: &$rhs$(<$rhs_type>)?) {
-                *self = $op_name::<&$rhs$(<$rhs_type>)?>::$fn(*self, rhs);
-            }
-        }
-    };
-}
-
 macro_rules! define_vector {
     ($name:ident $(, $component:ident)+) => {
         #[derive(Clone, Copy, PartialEq, Debug)]
@@ -135,7 +83,7 @@ macro_rules! define_vector {
             }
         }
 
-        forward_ref_binop!($name<T>, Dot, dot, $name<T>, T);
+        forward_ref_binop!(impl [T: VectorType] Dot, dot for $name<T>, $name<T>);
 
         impl<T: VectorType> Add<&$name<T>> for &$name<T> {
             type Output = $name<T>;
@@ -145,8 +93,8 @@ macro_rules! define_vector {
             }
         }
 
-        forward_ref_binop!($name<T>, Add, add, $name<T>, $name<T>);
-        forward_ref_binop_assign!($name<T>, Add, add, AddAssign, add_assign, $name<T>);
+        forward_ref_binop!(impl [T: VectorType] Add, add for $name<T>, $name<T>);
+        forward_ref_binop_assign!(impl [T: VectorType]  Add, add, AddAssign, add_assign for $name<T>, $name<T>);
 
         impl<T: VectorType> Sub<&$name<T>> for &$name<T> {
             type Output = $name<T>;
@@ -156,8 +104,8 @@ macro_rules! define_vector {
             }
         }
 
-        forward_ref_binop!($name<T>, Sub, sub, $name<T>, $name<T>);
-        forward_ref_binop_assign!($name<T>, Sub, sub, SubAssign, sub_assign, $name<T>);
+        forward_ref_binop!(impl [T: VectorType] Sub, sub for $name<T>, $name<T>);
+        forward_ref_binop_assign!(impl [T: VectorType]  Sub, sub, SubAssign, sub_assign for $name<T>, $name<T>);
 
         impl<T: VectorType> Neg for &$name<T> {
             type Output = $name<T>;
@@ -167,13 +115,7 @@ macro_rules! define_vector {
             }
         }
 
-        impl<T: VectorType> Neg for $name<T> {
-            type Output = $name<T>;
-
-            fn neg(self) -> Self::Output {
-                -&self
-            }
-        }
+        forward_ref_unop!(impl [T: VectorType] Neg, neg for $name<T>);
 
         impl<T: VectorType> Mul<&$name<T>> for &$name<T> {
             type Output = $name<T>;
@@ -183,8 +125,8 @@ macro_rules! define_vector {
             }
         }
 
-        forward_ref_binop!($name<T>, Mul, mul, $name<T>, $name<T>);
-        forward_ref_binop_assign!($name<T>, Mul, mul, MulAssign, mul_assign, $name<T>);
+        forward_ref_binop!(impl [T: VectorType] Mul, mul for $name<T>, $name<T>);
+        forward_ref_binop_assign!(impl [T: VectorType]  Mul, mul, MulAssign, mul_assign for $name<T>, $name<T>);
 
         impl<T: VectorType> Mul<&T> for &$name<T> {
             type Output = $name<T>;
@@ -194,8 +136,8 @@ macro_rules! define_vector {
             }
         }
 
-        forward_ref_binop!($name<T>, Mul, mul, T, $name<T>);
-        forward_ref_binop_assign!($name<T>, Mul, mul, MulAssign, mul_assign, T);
+        forward_ref_binop!(impl [T: VectorType] Mul, mul for $name<T>, T);
+        forward_ref_binop_assign!(impl [T: VectorType]  Mul, mul, MulAssign, mul_assign for $name<T>, T);
 
         impl<T: VectorType> Div<&$name<T>> for &$name<T> {
             type Output = $name<T>;
@@ -205,8 +147,8 @@ macro_rules! define_vector {
             }
         }
 
-        forward_ref_binop!($name<T>, Div, div, $name<T>, $name<T>);
-        forward_ref_binop_assign!($name<T>, Div, div, DivAssign, div_assign, $name<T>);
+        forward_ref_binop!(impl [T: VectorType] Div, div for $name<T>, $name<T>);
+        forward_ref_binop_assign!(impl [T: VectorType]  Div, div, DivAssign, div_assign for $name<T>, $name<T>);
 
         impl<T: VectorType> Div<&T> for &$name<T> {
             type Output = $name<T>;
@@ -217,8 +159,8 @@ macro_rules! define_vector {
             }
         }
 
-        forward_ref_binop!($name<T>, Div, div, T, $name<T>);
-        forward_ref_binop_assign!($name<T>, Div, div, DivAssign, div_assign, T);
+        forward_ref_binop!(impl [T: VectorType] Div, div for $name<T>, T);
+        forward_ref_binop_assign!(impl [T: VectorType]  Div, div, DivAssign, div_assign for $name<T>, T);
 
         impl<T, U: Into<T> + Copy> From<&$name<U>> for $name<T> {
             fn from(value: &$name<U>) -> Self {
@@ -251,22 +193,15 @@ impl<T: VectorType> Cross<&Vector3<T>> for &Vector3<T> {
     }
 }
 
-forward_ref_binop!(Vector3<T>, Cross, cross, Vector3<T>, Vector3<T>);
-forward_ref_binop_assign!(
-    Vector3<T>,
-    Cross,
-    cross,
-    CrossAssign,
-    cross_assign,
-    Vector3<T>
-);
+forward_ref_binop!(impl [T: VectorType] Cross, cross for Vector3<T>, Vector3<T>);
+forward_ref_binop_assign!(impl [T: VectorType] Cross, cross, CrossAssign, cross_assign for Vector3<T>, Vector3<T>);
 
 #[cfg(test)]
 mod tests {
-    use crate::math::vector::Cross;
-    use crate::math::vector::Dot;
-    use crate::math::vector::Vector2;
-    use crate::math::vector::Vector3;
+    use super::Cross;
+    use super::Dot;
+    use super::Vector2;
+    use super::Vector3;
 
     #[test]
     fn test_vector2_mul() {

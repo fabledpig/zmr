@@ -48,3 +48,94 @@ macro_rules! internal_mut_struct {
         }
     };
 }
+
+#[macro_export]
+macro_rules! forward_ref_binop {
+    (
+        impl $([$($generic: tt)+] )?
+        $op: ident,
+        $fn: ident
+        for
+        $lhs: ty,
+        $rhs: ty
+        $(where $($bound:tt)+)?
+    ) => {
+        impl$(<$($generic)*>)? $op<&$rhs> for $lhs
+        $(where $($bound)*)? {
+
+            type Output = <&'static $lhs as $op<&'static $rhs>>::Output;
+
+            fn $fn(self, rhs: &$rhs) -> Self::Output {
+                <&$lhs>::$fn(&self, rhs)
+            }
+        }
+
+        impl$(<$($generic)*>)? $op<$rhs> for &$lhs
+        $(where $($bound)*)? {
+            type Output = <&'static $lhs as $op<&'static $rhs>>::Output;
+
+            fn $fn(self, rhs: $rhs) -> Self::Output {
+                <&$lhs>::$fn(self, &rhs)
+            }
+        }
+
+        impl$(<$($generic)*>)? $op<$rhs> for $lhs
+        $(where $($bound)*)? {
+            type Output = <&'static $lhs as $op<&'static $rhs>>::Output;
+
+            fn $fn(self, rhs: $rhs) -> Self::Output {
+                <&$lhs>::$fn(&self, &rhs)
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! forward_ref_binop_assign {
+    (
+        impl $([$($generic: tt)+] )?
+        $op: ident,
+        $fn: ident,
+        $assign_op: ident,
+        $assign_fn: ident
+        for
+        $lhs: ty,
+        $rhs: ty
+        $(where $($bound:tt)+)?
+    ) => {
+        impl$(<$($generic)*>)? $assign_op<$rhs> for $lhs
+        $(where $($bound)*)? {
+            fn $assign_fn(&mut self, rhs: $rhs) {
+                *self = <&$lhs>::$fn(&*self, rhs);
+            }
+        }
+
+        impl$(<$($generic)*>)? $assign_op<&$rhs> for $lhs
+        $(where $($bound)*)? {
+            fn $assign_fn(&mut self, rhs: &$rhs) {
+                *self = <&$lhs>::$fn(&*self, rhs);
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! forward_ref_unop {
+    (
+        impl $([$($generic: tt)+] )?
+        $op: ident,
+        $fn: ident
+        for
+        $type: ty
+        $(where $($bound:tt)+)?
+    ) => {
+        impl$(<$($generic)*>)? $op for $type
+        $(where $($bound)*)? {
+            type Output = <&'static $type as $op>::Output;
+
+            fn $fn(self) -> Self::Output {
+                <&$type>::$fn(&self)
+            }
+        }
+    };
+}
