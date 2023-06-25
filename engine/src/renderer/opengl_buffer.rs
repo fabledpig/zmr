@@ -27,7 +27,7 @@ impl OpenGlBuffer {
         unsafe {
             gl::NamedBufferData(
                 self.buffer_id,
-                (data.len() * std::mem::size_of::<T>()) as gl::types::GLsizeiptr,
+                std::mem::size_of_val(data) as gl::types::GLsizeiptr,
                 data.as_ptr() as *const _,
                 usage,
             );
